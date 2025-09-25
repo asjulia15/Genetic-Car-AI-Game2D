@@ -1,115 +1,114 @@
 # Autonomous Control System for Virtual Vehicle with Genetic Algorithm
 
-Welcome to the repository! This project, developed in Unity with C#, simulates and trains autonomous vehicles to navigate a 2D track efficiently using artificial neural networks (ANNs) optimized by a Genetic Algorithm (GA). Designed for academic exploration, it tests autonomous control methods for virtual vehicles.
+Welcome to the repository! This project, developed in Unity with C#, simulates and trains autonomous vehicles to navigate a 2D track efficiently using artificial neural networks (ANNs) optimized by a Genetic Algorithm (GA). Designed for academic exploration, it serves as a robust platform for testing autonomous control methods for virtual vehicles.
+
+This README provides a comprehensive, developer-oriented guide to understanding, setting up, and extending the system. It covers the core principles, technical implementation details, and practical usage instructions.
 
 ---
+
 ### **Acknowledgments**
 
 This project was made possible by the dedicated contributions of **Lucas de Biace Torres** and **Gabriel Guimarães Moia**. We are deeply grateful for their hard work and commitment.
 
+---
+
+### **Table of Contents**
+
+* [Project Overview](#project-overview)
+* [Core Concepts & Technical Implementation](#core-concepts--technical-implementation)
+    * [Genetic Algorithm (GA) Explained](#genetic-algorithm-ga-explained)
+    * [Neural Network and Perception](#neural-network-and-perception)
+    * [Unity 2D Mechanics](#unity-2d-mechanics)
+* [Setup & Execution Guide](#setup--execution-guide)
+    * [Requirements](#requirements)
+    * [Configuration](#configuration)
+    * [Running the Simulation](#running-the-simulation)
+* [Alternative Control: The PID Controller](#alternative-control-the-pid-controller)
+    * [Manual Control](#manual-control)
+* [Extensibility and Contribution](#extensibility-and-contribution)
+* [License](#license)
+
+---
 
 ### **Project Overview**
 
-The goal is to train a virtual car to complete a track quickly without collisions, using 11 raycast sensors to "see" obstacles and a neural network to decide how to steer and accelerate. A PID controller is included for manual testing or alternative control, and an early elimination mechanism speeds up training by discarding underperforming cars.
+The primary objective is to train a virtual car to complete a 2D track as fast as possible without crashing. The vehicle's control system is entirely **autonomous**, driven by a combination of a **Neural Network** and a **Genetic Algorithm**.
 
-* **Environment**: A 2D track in Unity, with cars spawning at a fixed point.
-* **Sensors**: 11 raycasts in different directions to detect obstacles.
-* **Neural Network**: Configurable ANN (default: 12 inputs, 3-4-3 hidden layers, 2 outputs for horizontal/vertical control).
-* **Genetic Algorithm**: Optimizes neural network weights with elitism, crossover, and mutation.
-* **PID Controller**: Manages steering and speed for manual or alternative control.
-* **Optimization**: Early elimination of low-scoring cars and file-based weight saving/loading.
+The car's "perception" is based on **11 raycast sensors** that measure distances to obstacles. A neural network processes these inputs and outputs steering and acceleration commands. The Genetic Algorithm then acts as a sophisticated optimizer, evolving the neural network's internal weights across successive generations to improve performance.
 
-The core logic is in the `Paralelgerenciadorevolucao` script (attached to the "GENETIC Algorithm MANAGER" GameObject), which handles population creation, simulation, evaluation, and evolution.
+The project also includes a **PID (Proportional-Integral-Derivative) controller** as an alternative control mechanism for manual testing or fine-tuning. An early elimination mechanism is implemented to speed up training by culling underperforming individuals.
 
 ---
 
-### **User Guide**
+### **Core Concepts & Technical Implementation**
 
-#### **1. System Requirements**
+#### **Genetic Algorithm (GA) Explained**
+
+The script `Paralelgerenciadorevolucao.cs` is the central orchestrator of the entire evolutionary process.
+
+1.  **Initialization (`CriarNovaPopulacao()`)**: The process begins by creating a new population of cars. The `testedozero` variable determines if the neural network weights are randomly generated (`true`) or loaded from a pre-trained file (`false`) using `CarregarPesosDeArquivo()`.
+
+2.  **Fitness Evaluation & Elimination (`FixedUpdate()`)**: During a simulation, each car's performance is measured by its **`pontuacao`** (fitness score). To save resources, a performance check is done periodically, and any car with a low score (below `pontuacaoMinima` or less than 25% of the best score) is removed.
+
+3.  **Selection & Elitism (`EvoluirPopulacao()`)**: After the simulation, the cars are sorted by their final score. The top 20% of individuals are selected as the **"elite,"** and their neural network weights are directly copied to the new generation.
+
+4.  **Crossover & Mutation**: The rest of the new population is created through genetic recombination. **Crossover** (`CruzarPesos()`) combines weights from two elite parents. A **mutation** (`MutarPesos()`) is then applied, introducing small random changes to the weights to promote innovation.
+
+#### **Neural Network and Perception**
+
+The neural network is the car's "brain." It's a feedforward network with a configurable architecture, defaulting to `{12, 3, 4, 3}`. The 12 inputs come from the **11 raycast sensors** and the car's current speed. The outputs control the car's horizontal and vertical movement.
+
+#### **Unity 2D Mechanics**
+
+The project uses Unity's built-in 2D physics. The car's perception is handled by raycasts. The `ParalelControlaIA` script processes the neural network's output and translates it into physical forces or torques applied to the car's `carController` component.
+
+---
+
+### **Setup & Execution Guide**
+
+#### **Requirements**
 
 * **Unity**: Version 6000.0.38f1 (or compatible).
-* **Hardware**: A graphics card for Unity rendering.
-* **File Paths**: Hardcoded paths (e.g., "E:\jogo...") for weight files. Consider switching to relative paths (e.g., `Application.dataPath`) to avoid errors.
+* **Hardware**: A graphics card is required.
 
-#### **2. Project Setup**
+#### **Configuration**
 
-* Open the Unity project and load the scene named "scene done".
-* In the `Hierarchy`, select the **"GENETIC Algorithm MANAGER"** GameObject.
-* In the `Inspector`, configure the parameters.
+1.  Open the Unity project and load the scene named **"scene done"**.
+2.  In the `Hierarchy`, select the **`GENETIC Algorithm MANAGER`** GameObject.
+3.  In the `Inspector`, you can configure the GA parameters like **`testedozero`**, **`populacaoTamanho`**, and **`taxaMutacao`**. Ensure you review the hardcoded `caminhoArquivoInicial` path.
 
-#### **3. Adjusting Genetic Algorithm Parameters**
-
-* **Initialization**:
-    * `testedozero`: Set to `true` for a fresh start with random weights, or `false` to load pre-trained weights.
-    * `deltaPontuacaoMinima`: Minimum score difference for diversity when loading weights (default: 500).
-    * `caminhoArquivoInicial`: Path to the initial weights file.
-* **Population Configuration**:
-    * `populacaoTamanho`: Number of cars per generation (default: 20).
-    * `tempoMaximo`: Maximum simulation time per generation (default: 30 seconds).
-* **Neural Network**:
-    * `estruturaRede`: An array defining the ANN layers (e.g., `{12, 3, 4, 3}`).
-    * `taxaMutacao`: Mutation probability per weight (default: 0.05).
-    * `intensidadeMutacao`: Maximum mutation change (default: 0.5).
-* **Exclusion Criteria**:
-    * `pontuacaoMinima`: Minimum score to avoid early elimination (default: 20).
-    * `divisorTempoPontuacao`: Divides `tempoMaximo` for periodic performance checks (default: 3).
-
-#### **4. Running the Simulation**
+#### **Running the Simulation**
 
 * Click **Play** in the Unity Editor.
-* Cars will spawn and evolve automatically.
-* Monitor the `Console` for logs on eliminations, deaths, and generation saves.
-
----
-
-### **How It Works**
-
-#### **Genetic Algorithm**
-
-The GA mimics natural evolution to optimize the neural network weights.
-
-* **Initialization (`Start()`)**: Creates the initial population. If `testedozero` is `false`, it loads weights from a file, ensuring diversity.
-* **Simulation Loop (`FixedUpdate()`)**:
-    * Tracks remaining time.
-    * **Early Elimination**: Every `tempoMaximo / divisorTempoPontuacao` seconds, it removes cars with low scores (below `pontuacaoMinima` or less than 25% of the best score).
-    * **Generation End**: When time expires or all cars are dead, it triggers evolution.
-* **Evolution (`EvoluirPopulacao()`)**:
-    * Sorts cars by final score.
-    * **Elitism**: Preserves the top 20% of performers.
-    * **Crossover and Mutation**: Selects two random elite parents, mixes their weights (`CruzarPesos()`), and mutates the child's weights (`MutarPesos()`). This process repeats until the new population is full.
-
-#### **Neural Network Integration**
-
-Each car's `ParalelControlaIA` script:
-* Feeds sensor data and speed into the ANN.
-* Applies the output to control the car's movement via `carController`.
-* The GA evolves only the network's weights, not its structure.
+* Cars will spawn and begin their evolutionary journey.
+* Monitor the `Console` for real-time logs.
 
 ---
 
 ### **Alternative Control: The PID Controller** 🛠️
 
-The `PIDcomVelocidade` script provides an alternative control method for steering and speed.
+A **PID controller** is included for precise control of the vehicle.
 
-* **How to Access**: In the "scene done" `Hierarchy`, find the **"Car PID"** GameObject.
-* **Disabling the AI**: In the `Inspector`, uncheck the `ParalelControlaIA` component to disable the neural network.
-* **Adjusting the PID**: On the `PIDcomVelocidade` component, you can adjust the gains for steering (`Kp`, `Ki`, `Kd`) and speed (`Kp Speed`, `Ki Speed`, `Kd Speed`).
+#### **How to Access and Configure**
+
+1.  In the `Hierarchy` of the "scene done" scene, find the GameObject **"Car PID"**.
+2.  To use manual controls, disable the AI by unchecking the enabled checkbox for the **`ParalelControlaIA`** component.
+3.  On the same object, locate the **`PIDcomVelocidade`** component to adjust the `Steering Gains` (`Kp`, `Ki`, `Kd`) and `Speed Gains` (`Kp Speed`, `Ki Speed`, `Kd Speed`).
+
+#### **Manual Control**
+
+With the AI controller disabled, you can drive the car manually.
+
+* **WASD or Arrow Keys**: Control steering and acceleration/braking.
+* **Brake (S / Down Arrow)**: Note that this does not engage reverse.
+* **E / Q**: Shift gears up and down.
 
 ---
 
-### **How to Manually Control the Car** 🕹️
+### **Extensibility and Contribution**
 
-With the AI disabled, you can take full control.
+This project provides a solid foundation for further research. Contributions are welcome!
 
-* **WASD or Arrow Keys**: Use to accelerate, brake, and steer.
-* **Brake (S or Down Arrow)**: Note that this does not engage reverse.
-* **Shift Gears**: Use **"E"** to shift up and **"Q"** to shift down.
-
----
-
-### **Contributing**
-
-Contributions are welcome!
 1.  Fork the repository.
 2.  Create a branch (`git checkout -b feature/your-feature`).
 3.  Commit your changes (`git commit -m "Add your feature"`).
